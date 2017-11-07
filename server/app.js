@@ -4,6 +4,7 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
+const cookieParser = require('./middleware/cookieParser');
 const models = require('./models');
 
 const app = express();
@@ -85,24 +86,13 @@ app.post('/signup', (req, res) => {
 });
 
 
-app.post('/login', (req, res) => {
-  return models.Users.get({username: req.body.username})
-    .then(user => {
-      if (user) {
-        return utils.compareHash(req.body.password, user.password, user.salt);
-      } else {
-        return false;
-      }
-    })
-    .then(bool => {
-      if (bool) {
-        res.redirect('/');
-      } else {
-        res.redirect('/login');
-      }
-    })
-    .catch(err => console.log(err));
-});
+app.post('/login',
+  (req, res) => {
+    models.Users.get({username: req.body.username})
+      .then(({password, salt}) => utils.compareHash(req.body.password, password, salt))
+      .then(isValidPassword => isValidPassword ? res.redirect('/') : res.redirect('/login'))
+      .catch(err => res.redirect('/login'));
+  });
 
 
 /************************************************************/
