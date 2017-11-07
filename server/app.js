@@ -79,11 +79,30 @@ app.post('/links',
 /************************************************************/
 
 app.post('/signup', (req, res) => {
-  return models.Users.create(req.body)
+  models.Users.create(req.body)
     .then(() => res.redirect('/'))
     .catch(err => res.redirect('/signup'));
 });
 
+
+app.post('/login', (req, res) => {
+  return models.Users.get({username: req.body.username})
+    .then(user => {
+      if (user) {
+        return utils.compareHash(req.body.password, user.password, user.salt);
+      } else {
+        return false;
+      }
+    })
+    .then(bool => {
+      if (bool) {
+        res.redirect('/');
+      } else {
+        res.redirect('/login');
+      }
+    })
+    .catch(err => console.log(err));
+});
 
 
 /************************************************************/
