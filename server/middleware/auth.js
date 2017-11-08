@@ -4,17 +4,12 @@ const Promise = require('bluebird');
 module.exports.createSession = (req, res, next) => {
   
   if (!req.cookies || !req.cookies.shortlyid) {
+    // if no cookie, make session
     models.Sessions.create()
       .then(({insertId}) => models.Sessions.get({id: insertId}))
       .then(session => {
         req.session = session; 
-        res.cookies = {
-          shortlyid: {
-            value: session.hash
-          }
-        };
-        session.userId = 1; // sessions.id
-        session.user = { username: 'BillZito'}; // req.body.username
+        res.cookie('shortlyid', session.hash);
         next();
       })
       .catch((err) => {
@@ -25,18 +20,18 @@ module.exports.createSession = (req, res, next) => {
     
     models.Sessions.get({hash: req.cookies.shortlyid })
       .then(session => {
+        if (!session) {
+          throw new Error('malicious session');
+        }
         req.session = session;
         next();
       })
       .catch(() => {
+        // if malicious
         models.Sessions.create() 
           .then(({insertId}) => models.Sessions.get({id: insertId}))
           .then(session => {
-            res.cookies = {
-              shortlyid: {
-                value: session.hash
-              }
-            };
+            res.cookie('shortlyid', session.hash);
             req.session = session; 
             next();
           });

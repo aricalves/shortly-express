@@ -18,7 +18,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 
 
-app.get('/', 
+app.get('/', Auth.createSession, 
   (req, res) => {
     res.render('index');
   });
@@ -79,18 +79,22 @@ app.post('/links',
 // Write your authentication routes here
 /************************************************************/
 
-app.post('/signup', (req, res) => {
+app.post('/signup', Auth.createSession, (req, res) => {
   models.Users.create(req.body)
-    .then(() => res.redirect('/'))
+    .then((session) => {
+      res.redirect('/');
+      session.user = req.body;
+      next();
+    })
     .catch(err => res.redirect('/signup'));
 });
 
 
-app.post('/login',
+app.post('/login', Auth.createSession, 
   (req, res) => {
     models.Users.get({username: req.body.username})
       .then(({password, salt}) => utils.compareHash(req.body.password, password, salt))
-      .then(isValidPassword => isValidPassword ? res.redirect('/') : res.redirect('/login'))
+      .then(hasValidPassword => hasValidPassword ? res.redirect('/') : res.redirect('/login'))
       .catch(err => res.redirect('/login'));
   });
 
